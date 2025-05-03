@@ -37,11 +37,11 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_blue_plus: ^1.4.4  # Ensure this is the latest stable version
-  permission_handler: ^10.2.0
+  permission_handler: ^11.3.0
   provider: ^6.0.0
   intl: ^0.18.0
   flutter_secure_storage: ^9.0.0  # For securely storing JWT
-  url_launcher: ^6.2.5  # For opening URLs in browser
+  url_launcher: ^6.2.6  # Updated for SDK 35 compatibility
   http: ^1.2.0  # For making HTTP requests
 
   # The following adds the Cupertino Icons font to your application.
