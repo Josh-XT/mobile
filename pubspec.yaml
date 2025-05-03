@@ -43,7 +43,7 @@ dependencies:
   flutter_secure_storage: ^9.0.0  # For securely storing JWT
   url_launcher: ^6.2.6  # Updated for SDK 35 compatibility
   http: ^1.2.0  # For making HTTP requests
-  flutter_web_auth: ^0.5.0  # Added for OAuth login
+  flutter_appauth: ^6.0.2  # Using flutter_appauth instead of flutter_web_auth
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
