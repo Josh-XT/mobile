@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_web_auth/flutter_web_auth.dart';
 import '../services/auth_service.dart';
 import 'home_page.dart';
 
@@ -82,6 +83,36 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _errorMessage = 'Error: $e';
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loginWithOAuth(String providerName, String authorizationUrl, String clientId, String redirectUri) async {
+    try {
+      final result = await FlutterWebAuth.authenticate(
+        url: authorizationUrl,
+        callbackUrlScheme: redirectUri.split('://')[0],
+      );
+
+      final token = Uri.parse(result).queryParameters['code'];
+      if (token != null) {
+        // Handle the token (e.g., send it to your backend for validation)
+        await AuthService.storeJWT(token);
+
+        // Navigate to the home page
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const MyHomePage()),
+          );
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'OAuth login failed: No token received';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'OAuth login error: $e';
       });
     }
   }
@@ -170,6 +201,33 @@ class _LoginScreenState extends State<LoginScreen> {
             TextButton(
               onPressed: _navigateToRegistration,
               child: const Text('Need an account? Register here'),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Or login with:',
+              style: Theme.of(context).textTheme.bodyLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => _loginWithOAuth(
+                'Google',
+                'https://accounts.google.com/o/oauth2/auth',
+                'your-google-client-id',
+                'your-app-scheme://callback',
+              ),
+              icon: const Icon(Icons.login),
+              label: const Text('Login with Google'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => _loginWithOAuth(
+                'GitHub',
+                'https://github.com/login/oauth/authorize',
+                'your-github-client-id',
+                'your-app-scheme://callback',
+              ),
+              icon: const Icon(Icons.login),
+              label: const Text('Login with GitHub'),
             ),
           ],
         ),
