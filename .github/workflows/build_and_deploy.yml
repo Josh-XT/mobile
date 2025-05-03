@@ -36,15 +36,25 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '11'
-      - name: Build Android release
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Generate Gradle wrapper
         run: |
           cd android
-          ./gradlew assembleRelease
+          gradle wrapper
+      - name: Build Android release
+        run: |
+          flutter build apk --release
       - name: Upload APK
         uses: actions/upload-artifact@v4.6.2
         with:
           name: app-release.apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
   release:
     name: Release APK
     needs: [apk, release_tag]
