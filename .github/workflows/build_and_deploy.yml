@@ -7,10 +7,16 @@ jobs:
   release_tag:
     name: Create Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       new_tag: ${{ steps.next_tag_version.outputs.new_tag }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Increment tag version
         uses: mathieudutour/github-tag-action@v6.2
         id: next_tag_version
@@ -18,19 +24,21 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release_branches: main
       - name: Create Release
-        uses: actions/create-release@v1.1.4
         id: create_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.next_tag_version.outputs.new_tag }}
-          release_name: ${{ steps.next_tag_version.outputs.new_tag }}
+          name: ${{ steps.next_tag_version.outputs.new_tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
   apk:
     name: Build APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
@@ -51,7 +59,7 @@ jobs:
         run: |
           flutter build apk --release
       - name: Upload APK
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v4
         with:
           name: app-release.apk
           path: build/app/outputs/flutter-apk/app-release.apk
@@ -59,18 +67,17 @@ jobs:
     name: Release APK
     needs: [apk, release_tag]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download APK from build
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v4
         with:
           name: app-release.apk
       - name: Upload Release APK
-        id: upload_release_asset
-        uses: actions/upload-release-asset@v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ needs.release_tag.outputs.upload_url }}
-          asset_path: app-release.apk
-          asset_name: app-release-${{ needs.release_tag.outputs.new_tag }}.apk
-          asset_content_type: application/vnd.android.package-archive
+          tag_name: ${{ needs.release_tag.outputs.new_tag }}
+          files: app-release.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ needs.release_tag.outputs.new_tag }}
