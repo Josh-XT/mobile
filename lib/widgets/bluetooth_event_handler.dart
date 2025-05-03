@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Import Provider
 import '../services/commands.dart';
 import '../services/bluetooth_manager.dart';
-import '../services/auth_service.dart';
+import '../services/settings_service.dart'; // Import SettingsService
+import '../services/config_service.dart'; // Import ConfigService
 import '../screens/login_screen.dart';
 import 'dart:async';
 import '../services/wearos_service.dart';
@@ -36,9 +38,13 @@ class _BluetoothEventHandlerState extends State<BluetoothEventHandler> {
       // Show processing message on glasses
       await sendText("Processing your request...", widget.bluetoothManager);
       
-      // Send request to AGiXT
-      final response = await sendChatRequest(userMessage);
-      
+      // Get required services from Provider
+      final settingsService = Provider.of<SettingsService>(context, listen: false);
+      final configService = Provider.of<ConfigService>(context, listen: false);
+
+      // Send request to AGiXT with required services
+      final response = await sendChatRequest(userMessage, settingsService, configService);
+
       if (response != null) {
         // Display response on glasses
         await sendText(response, widget.bluetoothManager, duration: 10.0);
