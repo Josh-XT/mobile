@@ -4,6 +4,7 @@ import '../services/bluetooth_manager.dart';
 import '../services/auth_service.dart';
 import '../screens/login_screen.dart';
 import 'dart:async';
+import '../services/wearos_service.dart';
 
 class BluetoothEventHandler extends StatefulWidget {
   final BluetoothManager bluetoothManager;
@@ -16,6 +17,7 @@ class BluetoothEventHandler extends StatefulWidget {
 
 class _BluetoothEventHandlerState extends State<BluetoothEventHandler> {
   final TextEditingController _inputController = TextEditingController();
+  final WearOSService _wearOSService = WearOSService();
   bool _processing = false;
 
   // This would be connected to the actual side button event from the glasses
@@ -41,6 +43,9 @@ class _BluetoothEventHandlerState extends State<BluetoothEventHandler> {
         // Display response on glasses
         await sendText(response, widget.bluetoothManager, duration: 10.0);
         
+        // Send the response to WearOS
+        await _wearOSService.sendChatResponseToWearOS(response);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Response displayed on glasses')),
