@@ -1,4 +1,7 @@
 import 'dart:typed_data';
+import 'dart:convert'; // For potential future text conversion
+
+import 'chat_service.dart'; // Import the new service
 
 // Command response status codes
 const int RESPONSE_SUCCESS = 0xC9;
@@ -33,7 +36,7 @@ class VoiceDataCollector {
 
 final VoiceDataCollector voiceCollector = VoiceDataCollector();
 
-Future<void> receiveHandler(String side, List<int> data) async {
+Future<void> receiveHandler(String side, List<int> data, ChatService chatService) async { // Add ChatService parameter
   if (data.isEmpty) return;
 
   int command = data[0];
@@ -42,7 +45,7 @@ Future<void> receiveHandler(String side, List<int> data) async {
     case 0xF5: // Start Even AI
       if (data.length >= 2) {
         int subcmd = data[1];
-        handleEvenAICommand(side, subcmd);
+        handleEvenAICommand(side, subcmd, chatService); // Pass chatService
       }
       break;
       
@@ -67,7 +70,7 @@ Future<void> receiveHandler(String side, List<int> data) async {
   }
 }
 
-void handleEvenAICommand(String side, int subcmd) {
+void handleEvenAICommand(String side, int subcmd, ChatService chatService) async { // Add ChatService parameter and make async
   switch (subcmd) {
     case 0:
       print('[$side] Exit to dashboard manually');
@@ -83,8 +86,28 @@ void handleEvenAICommand(String side, int subcmd) {
       // Process collected voice data
       if (voiceCollector.isComplete) {
         List<int> completeVoiceData = voiceCollector.getAllData();
-        // TODO: Process voice data (LC3 format)
+        print('[$side] Complete voice data received, length: ${completeVoiceData.length}');
+
+        // --- Voice Data Processing Placeholder ---
+        // TODO: Implement actual voice data processing (e.g., LC3 decoding, Speech-to-Text)
+        // For now, we'll send a placeholder message.
+        String userMessage = "Placeholder: Voice input received.";
+        // --- End Placeholder ---
+
+        print('[$side] Sending message to ChatService: "$userMessage"');
+        final assistantResponse = await chatService.sendChatMessage(userMessage);
+
+        if (assistantResponse != null) {
+          print('[$side] ChatService Response: $assistantResponse');
+          // TODO: Send assistantResponse back to the glasses display
+        } else {
+          print('[$side] ChatService returned null or error.');
+        }
+
         voiceCollector.reset();
+      } else {
+         print('[$side] Stop command received, but voice data collection is not complete.');
+         voiceCollector.reset(); // Reset anyway to avoid inconsistent state
       }
       break;
   }

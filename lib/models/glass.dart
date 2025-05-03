@@ -2,6 +2,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'dart:async';
 import '../services/commands.dart';
 import '../services/reciever.dart';
+import '../services/chat_service.dart'; // Import ChatService
 import '../utils/constants.dart';
 
 class Glass {
@@ -10,11 +11,13 @@ class Glass {
   final BluetoothDevice device;
   BluetoothCharacteristic? uartTx;
   BluetoothCharacteristic? uartRx;
+  final ChatService chatService; // Add ChatService instance variable
 
   StreamSubscription<List<int>>? notificationSubscription;
   Timer? heartbeatTimer;
   int heartbeatSeq = 0;
 
+  // Callbacks for status updates (can be simplified later if needed)
   final Function(String) onLeftStatusChanged;
   final Function(String) onRightStatusChanged;
 
@@ -22,6 +25,7 @@ class Glass {
     required this.name,
     required this.device,
     required this.side,
+    required this.chatService, // Add to constructor
     required this.onLeftStatusChanged,
     required this.onRightStatusChanged,
   });
@@ -85,8 +89,8 @@ class Glass {
   void handleNotification(List<int> data) async {
     String hexData = data.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
     print('[$side Glass] Received data: $hexData');
-    // Call the receive handler function
-    await receiveHandler(side, data);
+    // Call the receive handler function, passing the ChatService instance
+    await receiveHandler(side, data, chatService);
   }
 
   Future<void> sendData(List<int> data) async {

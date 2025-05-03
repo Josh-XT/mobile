@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:even_glasses/models/notification.dart';
+import '../models/notification.dart'; // Corrected import path
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import '../services/auth_service.dart';
+import '../services/settings_service.dart'; // Import SettingsService for JWT
+import '../services/config_service.dart'; // Import ConfigService for server URL
 
 import '../services/bluetooth_manager.dart';
 
@@ -254,37 +255,64 @@ Future<void> sendNotification(String message, BluetoothManager bluetoothManager)
   }
 }
 
-Future<String?> sendChatRequest(String userMessage) async {
-  final jwt = await AuthService.getJWT();
+// Updated to accept required services
+Future<String?> sendChatRequest(
+    String userMessage,
+    SettingsService settingsService,
+    ConfigService configService, // Added ConfigService for server URL
+    ) async {
+  final jwt = await settingsService.getJwt(); // Use SettingsService
   if (jwt == null) {
     throw Exception('JWT not found. User needs to log in.');
   }
 
+  final serverUrl = configService.agixtServer; // Use ConfigService
+  if (serverUrl.isEmpty) {
+     throw Exception('AGiXT server URL not configured.');
+  }
+
   try {
     final response = await http.post(
-      Uri.parse('${const String.fromEnvironment('AGIXT_SERVER', defaultValue: 'https://api.agixt.dev')}/v1/chat/completions'),
+      Uri.parse('$serverUrl/v1/chat/completions'), // Use configured server URL
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': jwt,
+        'Authorization': 'Bearer $jwt', // Add Bearer prefix
       },
       body: jsonEncode({
-        'model': 'EVEN_REALITIES_GLASSES',
+        'model': 'EVEN_REALITIES_GLASSES', // Consider making this configurable
         'messages': [
           {'role': 'user', 'content': userMessage},
         ],
-        'user': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        'user': DateFormat('yyyy-MM-dd').format(DateTime.now()), // Consider if user ID is better
       }),
     );
 
     if (response.statusCode == 200) {
       final responseBody = jsonDecode(response.body);
-      return responseBody['choices'][0]['message']['content'];
+      // Check response structure carefully
+      if (responseBody != null &&
+          responseBody['choices'] is List &&
+          responseBody['choices'].isNotEmpty &&
+          responseBody['choices'][0]['message'] is Map &&
+          responseBody['choices'][0]['message']['content'] != null) {
+        return responseBody['choices'][0]['message']['content'];
+      } else {
+        throw Exception('Unexpected chat response format.');
+      }
     } else if (response.statusCode == 401) {
       // JWT has expired, clear it and throw specific exception
-      await AuthService.clearJWT();
+      await settingsService.clearJwt(); // Use SettingsService
       throw Exception('Authentication expired. Please log in again.');
     } else {
-      throw Exception('Failed to get chat response: ${response.statusCode}');
+      // Try to parse error detail from backend
+      String errorDetail = response.body;
+      try {
+         final errorJson = jsonDecode(response.body);
+         if (errorJson['detail'] != null) {
+            errorDetail = errorJson['detail'];
+         }
+      } catch (_) { /* Ignore JSON parsing error */ }
+      throw Exception('Failed to get chat response (${response.statusCode}): $errorDetail');
     }
   } catch (e) {
     print('Error in sendChatRequest: $e');

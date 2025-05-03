@@ -6,7 +6,11 @@ import '../models/notification.dart' as custom_notification;
 import '../models/notification.dart';
 import '../services/bluetooth_manager.dart';
 import '../services/commands.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../controllers/auth_controller.dart'; // Import AuthController
+import '../services/chat_service.dart'; // Import ChatService
+import '../services/config_service.dart'; // Import ConfigService
+import '../services/settings_service.dart'; // Import SettingsService
 import '../widgets/glass_status.dart';
 import '../widgets/bluetooth_event_handler.dart';
 import 'login_screen.dart';
@@ -19,16 +23,20 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final BluetoothManager bluetoothManager = BluetoothManager();
+  late final BluetoothManager bluetoothManager; // Initialize in initState
   final TextEditingController _textController = TextEditingController();
 
-  // Variables to hold connection status
+  // Variables to hold connection status (Consider moving to BluetoothManager or separate state)
   String leftStatus = 'Disconnected';
   String rightStatus = 'Disconnected';
 
   @override
   void initState() {
     super.initState();
+    // Initialize BluetoothManager with ChatService from Provider
+    // Use listen: false as we only need it for initialization
+    final chatService = Provider.of<ChatService>(context, listen: false);
+    bluetoothManager = BluetoothManager(chatService: chatService);
     // Optionally initiate scan here or via button
   }
 
@@ -179,20 +187,34 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _goToAGiXTWeb() async {
-    final jwt = await AuthService.getJWT();
+    // Access services via Provider
+    // final authService = Provider.of<AuthService>(context, listen: false); // No longer needed here
+    final configService = Provider.of<ConfigService>(context, listen: false);
+    final settingsService = Provider.of<SettingsService>(context, listen: false);
+
+    final jwt = await settingsService.getJwt();
     if (jwt == null) {
+      if (!mounted) return; // Add mounted check
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Authentication token not found')),
       );
       return;
     }
     
-    final appUri = const String.fromEnvironment('APP_URI', defaultValue: 'https://agixt.dev');
+    final appUri = configService.appUri;
+    if (appUri.isEmpty) { // Check if empty
+       if (!mounted) return;
+       ScaffoldMessenger.of(context).showSnackBar(
+         const SnackBar(content: Text('App URI not configured')),
+       );
+       return;
+    }
     final url = Uri.parse('$appUri?token=$jwt');
-    
+
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
+      if (!mounted) return; // Add mounted check
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not open $appUri')),
       );
@@ -200,13 +222,18 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _logout() async {
-    await AuthService.clearJWT();
+    // Use AuthController from Provider
+    final authController = Provider.of<AuthController>(context, listen: false);
+    await authController.logout(); // Call logout on the controller
     if (mounted) {
-      Navigator.of(context).pushReplacement(
+      // Navigate back to Login Screen after logout
+      // Ensure all previous routes are removed
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (Route<dynamic> route) => false, // Remove all previous routes
       );
     }
-  }
+  } // End of _logout method
 
   @override
   void dispose() {
@@ -214,11 +241,13 @@ class _MyHomePageState extends State<MyHomePage> {
     bluetoothManager.rightGlass?.disconnect();
     _textController.dispose();
     super.dispose();
-  }
+  } // End of dispose method
 
   @override
   Widget build(BuildContext context) {
-    final appName = const String.fromEnvironment('APP_NAME', defaultValue: 'AGiXT');
+    // Access ConfigService via Provider (listen: false is okay for appName)
+    final configService = Provider.of<ConfigService>(context, listen: false);
+    final appName = configService.appName;
 
     return Scaffold(
       appBar: AppBar(
@@ -226,7 +255,7 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: _logout,
+            onPressed: _logout, // Ensure _logout is defined within the class
             tooltip: 'Logout',
           ),
         ],
@@ -237,7 +266,7 @@ class _MyHomePageState extends State<MyHomePage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ElevatedButton(
-              onPressed: _scanAndConnect,
+              onPressed: _scanAndConnect, // Ensure _scanAndConnect is defined
               child: const Text('Connect to Glasses'),
             ),
             const SizedBox(height: 20),
@@ -245,13 +274,13 @@ class _MyHomePageState extends State<MyHomePage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GlassStatus(side: 'Left', status: leftStatus),
-                GlassStatus(side: 'Right', status: rightStatus),
+                GlassStatus(side: 'Left', status: leftStatus), // Ensure leftStatus is defined
+                GlassStatus(side: 'Right', status: rightStatus), // Ensure rightStatus is defined
               ],
             ),
             const SizedBox(height: 20),
             TextField(
-              controller: _textController,
+              controller: _textController, // Ensure _textController is defined
               decoration: const InputDecoration(
                 labelText: 'Enter text to send',
                 border: OutlineInputBorder(),
@@ -264,14 +293,14 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _sendText,
+                    onPressed: _sendText, // Ensure _sendText is defined
                     child: const Text('Send Text'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _sendNotification,
+                    onPressed: _sendNotification, // Ensure _sendNotification is defined
                     child: const Text('Send Notification'),
                   ),
                 ),
@@ -287,10 +316,10 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(height: 16),
             // AGiXT Bluetooth Event Handler - controls side button functionality
-            BluetoothEventHandler(bluetoothManager: bluetoothManager),
+            BluetoothEventHandler(bluetoothManager: bluetoothManager), // Ensure bluetoothManager is defined
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: _goToAGiXTWeb,
+              onPressed: _goToAGiXTWeb, // Ensure _goToAGiXTWeb is defined
               icon: const Icon(Icons.open_in_browser),
               label: Text('Go to $appName'),
               style: ElevatedButton.styleFrom(
@@ -299,7 +328,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: _logout,
+              onPressed: _logout, // Ensure _logout is defined
               icon: const Icon(Icons.logout),
               label: const Text('Logout'),
               style: ElevatedButton.styleFrom(
@@ -310,5 +339,5 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
-  }
-}
+  } // End of build method
+} // End of _MyHomePageState class

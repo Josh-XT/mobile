@@ -4,6 +4,7 @@ import 'dart:async';
 import '../utils/constants.dart';
 import '../models/glass.dart';
 import 'commands.dart';
+import 'chat_service.dart'; // Import ChatService
 import 'dart:convert';
 
 typedef OnGlassFound = void Function(Glass);
@@ -11,12 +12,16 @@ typedef OnScanTimeout = void Function(String);
 typedef OnScanError = void Function(String);
 
 class BluetoothManager {
+  final ChatService chatService; // Add ChatService instance
   Glass? leftGlass;
   Glass? rightGlass;
   Timer? _scanTimer;
   bool _isScanning = false;
   int _retryCount = 0;
   static const int maxRetries = 3;
+
+  // Constructor requires ChatService
+  BluetoothManager({required this.chatService});
 
   Future<void> _requestPermissions() async {
     Map<Permission, PermissionStatus> statuses = await [
@@ -117,7 +122,8 @@ class BluetoothManager {
         name: deviceName,
         device: result.device,
         side: 'left',
-        onLeftStatusChanged: (status) => print('Left glass status: $status'),
+        chatService: chatService, // Pass ChatService
+        onLeftStatusChanged: (status) => print('Left glass status: $status'), // Placeholder callbacks
         onRightStatusChanged: (_) {},
       );
       leftGlass = glass;
@@ -128,8 +134,9 @@ class BluetoothManager {
         name: deviceName,
         device: result.device,
         side: 'right',
+        chatService: chatService, // Pass ChatService
         onLeftStatusChanged: (_) {},
-        onRightStatusChanged: (status) => print('Right glass status: $status'),
+        onRightStatusChanged: (status) => print('Right glass status: $status'), // Placeholder callbacks
       );
       rightGlass = glass;
       onGlassFound(glass);
