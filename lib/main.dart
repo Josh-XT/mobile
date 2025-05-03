@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import dotenv
 import 'package:provider/provider.dart';
 import 'screens/home_page.dart'; // Ensure this path is correct
 import 'screens/login_screen.dart';
@@ -9,6 +10,9 @@ import 'services/settings_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables BEFORE initializing services that depend on them
+  await dotenv.load(fileName: ".env");
 
   // Initialize services (ConfigService loads env in constructor now)
   final configService = ConfigService();
