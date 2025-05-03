@@ -36,6 +36,10 @@ jobs:
   apk:
     name: Build APK
     runs-on: ubuntu-latest
+    env:
+      APP_NAME: AGiXT
+      AGIXT_SERVER: https://api.agixt.dev
+      APP_URI: https://agixt.dev
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

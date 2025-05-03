@@ -262,7 +262,7 @@ Future<String?> sendChatRequest(String userMessage) async {
 
   try {
     final response = await http.post(
-      Uri.parse('${const String.fromEnvironment('AGIXT_SERVER')}/v1/chat/completions'),
+      Uri.parse('${const String.fromEnvironment('AGIXT_SERVER', defaultValue: 'https://api.agixt.dev')}/v1/chat/completions'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': jwt,

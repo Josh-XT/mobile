@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('${const String.fromEnvironment('AGIXT_SERVER')}/v1/login'),
+        Uri.parse('${const String.fromEnvironment('AGIXT_SERVER', defaultValue: 'https://api.agixt.dev')}/v1/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToRegistration() async {
-    final appUri = const String.fromEnvironment('APP_URI');
+    final appUri = const String.fromEnvironment('APP_URI', defaultValue: 'https://agixt.dev');
     final url = Uri.parse(appUri);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -102,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appName = const String.fromEnvironment('APP_NAME');
+    final appName = const String.fromEnvironment('APP_NAME', defaultValue: 'AGiXT');
     
     return Scaffold(
       appBar: AppBar(

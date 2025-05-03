@@ -187,7 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
     
-    final appUri = const String.fromEnvironment('APP_URI');
+    final appUri = const String.fromEnvironment('APP_URI', defaultValue: 'https://agixt.dev');
     final url = Uri.parse('$appUri?token=$jwt');
     
     if (await canLaunchUrl(url)) {
